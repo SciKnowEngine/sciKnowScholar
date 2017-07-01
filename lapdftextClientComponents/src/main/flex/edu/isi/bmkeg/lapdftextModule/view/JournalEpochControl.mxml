@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 xmlns:udb="edu.isi.bmkeg.utils.updownload.*" 
+		 xmlns:hc="com.hillelcoren.components.*"
+		 initialize="init()"
+		 width="100%" height="100%">
+	<s:layout>
+		<s:VerticalLayout/>
+	</s:layout>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import edu.isi.bmkeg.digitalLibrary.events.*;
+			import edu.isi.bmkeg.digitalLibrary.model.citations.JournalEpoch;
+			import edu.isi.bmkeg.digitalLibrary.model.qo.citations.*;
+			import edu.isi.bmkeg.digitalLibrary.rl.events.*;
+			import edu.isi.bmkeg.digitalLibraryModule.view.forms.*;
+			import edu.isi.bmkeg.ftd.model.qo.FTDRuleSet_qo;
+			import edu.isi.bmkeg.ftd.rl.events.FindFTDRuleSetByIdEvent;
+			import edu.isi.bmkeg.ftd.rl.events.ListFTDRuleSetEvent;
+			import edu.isi.bmkeg.lapdftextModule.events.*;
+			import edu.isi.bmkeg.vpdmf.model.instances.LightViewInstance;
+			
+			import mx.collections.ArrayCollection;
+			import mx.core.DragSource;
+			import mx.events.DragEvent;
+			import mx.events.FlexEvent;
+			import mx.managers.DragManager;
+			import mx.managers.PopUpManager;
+			
+			import spark.components.Group;
+			import spark.components.gridClasses.CellPosition;
+			import spark.components.gridClasses.IGridItemRenderer;
+			import spark.events.GridEvent;
+			import spark.events.GridSelectionEvent;
+			import spark.events.IndexChangeEvent;
+
+			public var epoch:JournalEpoch;
+			
+			[Bindable]
+			public var epochList:ArrayCollection = new ArrayCollection();
+
+			[Bindable]
+			public var ruleFiles:ArrayCollection = new ArrayCollection();
+			
+			[Bindable]
+			public var typItem:Object;
+			
+			[Bindable]
+			public var typItem2:Object;
+
+			public function init():void {
+				
+				this.typItem = {
+					"JournalEpoch_1" : "J Blah Blah",
+					"JournalEpoch_2" : "001",
+					"JournalEpoch_3" : "999",
+					"JournalEpoch_4" : "Rule File Name"
+				};
+				
+				this.typItem2 = {
+					"FTDRuleSet_1" : "Rule Set Name",
+					"FTDRuleSet_2" : "FileNameForRules.csv"
+				};
+				
+				this.dispatchEvent( new ListExtendedJournalEpochsEvent() );
+				this.dispatchEvent( new ListFTDRuleSetEvent(new FTDRuleSet_qo()) );
+				
+			}
+			
+			
+			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+			// When you select a corpus, go get it. 
+			//
+			/*protected function handle_corpusComboChange(event:IndexChangeEvent):void
+			{
+
+				var i:int = event.newIndex;
+				
+				if( i >= 0 ) {
+					
+					var o:Object = corpusCombo.dataProvider.getItemAt(i);
+
+					if( o.vpdmfLabel != null ) {
+						var vpdmfId:Number = o.vpdmfId;
+						var m:JournalEpoch = new JournalEpoch();
+						m.vpdmfId = vpdmfId
+						this.dispatchEvent( new FindCorpusByIdEvent(vpdmfId) );
+					} else {
+						this.dispatchEvent( new ListArticleCitationPagedEvent(
+							new ArticleCitation_qo(), 0, 300
+						) );
+					}
+					
+				} 
+				
+			}*/
+					
+			//
+			// Define a custom function for the labelFunction property
+			// to display an Object in the ComboBox control.
+			//
+			public function myLabelFunc(item:Object):String {
+				if( item == null )
+					return "-";
+
+				if( item.vpdmfLabel == null )
+					return "< None >";
+				
+				return item.vpdmfLabel; 
+			}				
+			
+			protected function addButton_clickHandler(event:MouseEvent):void
+			{
+				this.dispatchEvent(new ActivateJournalEpochPopupEvent(new JournalEpoch()));
+			}
+			
+			protected function corpusCombo_doubleClickHandler(event:MouseEvent):void
+			{				
+				this.dispatchEvent(new ActivateJournalEpochPopupEvent(this.epoch));
+			}
+			
+			protected function removeButton_clickHandler(event:MouseEvent):void
+			{
+				this.dispatchEvent( new DeleteJournalEpochByIdEvent(epoch.vpdmfId) );
+			}
+			
+			public function ruleFileLabelFunc(item:Object):String {
+			
+				if( item == null )
+					return "-";	
+				
+				return item.vpdmfLabel; 
+			
+			}	
+			
+			// The dragEnter event handler for the Canvas container
+			// enables dropping.
+			private function dragEnterHandler(event:DragEvent):void {
+				//if (event.dragSource.hasFormat("img"))
+				//{
+					DragManager.acceptDragDrop(DataGrid(event.currentTarget));
+				//}
+			}
+			
+			// The dragDrop event handler for the Canvas container
+			// sets the Image control's position by 
+			// "dropping" it in its new location.
+			private function dragDropHandler(event:DragEvent):void {
+
+				var data:Vector.<Object> = event.dragSource.dataForFormat("itemsByIndex") as Vector.<Object>;
+
+				var pt:Point = new Point(event.stageX, event.stageY);
+				pt = dg.grid.globalToLocal(pt);
+				var pos:CellPosition = dg.grid.getCellAt(pt.x, pt.y);
+				
+				if( pos != null ) {
+					
+					var newDropIndex:int = pos.rowIndex;
+					var count:int = data.length;
+					
+					var ruleFileId:Number = data[0].vpdmfId;
+
+					// The JournalEpoch Object probably doesn't exist
+					// in the database since many of these are generated 
+					// directly from the listed papers.
+					var epochObj:Object = epochList.getItemAt(newDropIndex);
+					var epochId:Number = epochObj.vpdmfId;
+					var epochJournal:String = epochObj["JournalEpoch_1"];
+					var epochStart:Number = Number(epochObj["JournalEpoch_2"]);
+					var epochEnd:Number = Number(epochObj["JournalEpoch_3"]);
+					
+					// Ok, so we have identified the target
+					// row for the drag and drop, run a query 
+					// to add the rule file to the JournalEpoch
+					this.dispatchEvent(
+						new AddRuleFileToJournalEpochEvent( 
+							ruleFileId, epochId,
+							epochJournal, epochStart, epochEnd));
+					
+				}
+				
+			}
+			
+			
+			protected function ruleFileControl_changeHandler(event:IndexChangeEvent):void
+			{
+				var item:LightViewInstance = LightViewInstance(
+					ruleFiles.getItemAt(event.newIndex));
+				this.dispatchEvent(new FindFTDRuleSetByIdEvent(item.vpdmfId));				
+			}
+			
+			
+			protected function dg_selectionChangeHandler(event:GridSelectionEvent):void
+			{				
+				var o:Object = dg.selectedItem;	
+				var j:String = o["JournalEpoch_1"];
+				var s:String = o["JournalEpoch_2"];
+				var e:String = o["JournalEpoch_3"];
+
+				var aQo:ArticleCitation_qo = new ArticleCitation_qo();
+				var jQo:Journal_qo = new Journal_qo();
+				aQo.journal = jQo;
+				aQo.volValue = "<vpdmf-gteq>" + s + "<vpdmf-and><vpdmf-lteq>" + e;
+				jQo.abbr = j;
+				
+				dispatchEvent(new ListArticleCitationPagedEvent(aQo, 0, 200));
+			}
+			
+			protected function runAllRulesControl_clickHandler(event:MouseEvent):void
+			{
+				this.dispatchEvent(new RunRulesOverAllEpochsEvent());					
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:Label top="10" fontSize="16" fontWeight="bold"
+			 horizontalCenter="0" text="Journal Epochs"/>
+
+	<s:DataGrid id="dg" width="100%" height="50%" 
+				dataProvider="{epochList}"
+				typicalItem="{typItem}"
+			    selectionChange="dg_selectionChangeHandler(event)"
+				dragEnter="dragEnterHandler(event);" 
+				dragDrop="dragDropHandler(event);"
+				sortableColumns="false">
+		<s:columns>
+			<s:ArrayList>
+				<s:GridColumn headerText="Journal"  
+							  dataField="JournalEpoch_1"/>
+				<s:GridColumn headerText="Min" 
+							  dataField="JournalEpoch_2"/>
+				<s:GridColumn headerText="Max." 
+							  dataField="JournalEpoch_3"/>
+				<s:GridColumn headerText="Rules" 
+							  dataField="JournalEpoch_4"/>
+				<s:GridColumn itemRenderer="edu.isi.bmkeg.lapdftextModule.view.JournalEpochControl__RunRulesButtonRenderer"/>
+			</s:ArrayList>
+		</s:columns>
+	</s:DataGrid>
+
+	<s:HGroup>
+		<s:Spacer width="100%"/>
+		<s:Button id="runAllRulesControl"
+				  chromeColor="white"
+				  label="Run rules over all epochs ..."
+				  click="runAllRulesControl_clickHandler(event)"
+				  />	
+	</s:HGroup>
+	
+	
+	<s:Label top="10" fontSize="16" fontWeight="bold"
+			 horizontalCenter="0" text="Text Extraction Rule Files"/>
+
+	<udb:UpDownLoadButtons id="updownButtons"
+						   upTooltip="Upload a rule file from disk"
+						   downTooltip="Download this rule file to disk"
+						   unloadedMessage="- No Rule File Loaded -" 
+						   fileFilters="_drl.xls"/> 	
+
+	<s:List id="ruleFileControl" width="100%" height="100%"
+		 	dataProvider="{ruleFiles}"
+		 	change="ruleFileControl_changeHandler(event)"
+			dragEnabled="true"
+			labelFunction="ruleFileLabelFunc"
+			/>				
+</s:Group>

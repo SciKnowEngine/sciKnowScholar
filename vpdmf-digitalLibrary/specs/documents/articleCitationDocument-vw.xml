@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<view name="ArticleCitationDocument" type="Lookup" editable="false">
+	<primitives>
+		<primitive name="LiteratureCitation">
+			<classes>			
+				<class name="ViewTable"/>
+				<class name="LiteratureCitation"/>
+				<class name="ArticleCitation" />
+			</classes>
+			<pvLinks>
+				<pvLink c1="LiteratureCitation" role="fullText" pv2="FTD" c2="FTD"/>
+				<pvLink c1="LiteratureCitation" role="fullTextUrl" pv2="URL" c2="URL"/>
+				<pvLink c1="ArticleCitation" role="journal" pv2="Journal" c2="Journal"/>
+				<pvLink c1="LiteratureCitation" role="ids" pv2="ID" c2="ID"/>
+			</pvLinks>
+		</primitive>		
+		<primitive name="FTD" nullable="true">
+			<classes>
+				<class name="FTD"/>
+			</classes>
+		</primitive>
+		<primitive name="URL" nullable="true">
+			<classes>
+				<class name="URL"/>
+			</classes>
+		</primitive>
+		<primitive name="ID" nullable="true">
+			<classes>
+				<class name="ID"/>
+			</classes>
+		</primitive>
+		<primitive editable="false" name="Journal">
+			<classes>
+				<class name="Journal"/>
+			</classes>
+		</primitive>
+	</primitives>		
+	<vpdmfLabel format="pmid: $1$, $2$ [checksum: $3$]" />
+	<indexElements>
+		<indexElement pos="1" p="LiteratureCitation" c="ArticleCitation" a="pmid" uniqueKey="true"/>
+		<indexElement pos="2" p="FTD" c="FTD" a="name" />
+		<indexElement pos="3" p="FTD" c="FTD" a="checksum" />
+		<indexElement pos="4" p="FTD" c="FTD" a="pdfLoaded" />
+		<indexElement pos="5" p="FTD" c="FTD" a="pmcLoaded" />
+		<indexElement pos="6" p="FTD" c="FTD" a="swfLoaded" />
+		<indexElement pos="7" p="FTD" c="FTD" a="xmlLoaded" />
+	</indexElements>
+</view>

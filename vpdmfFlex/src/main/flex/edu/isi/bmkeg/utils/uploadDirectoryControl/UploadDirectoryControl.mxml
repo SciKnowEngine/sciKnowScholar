@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		xmlns:s="library://ns.adobe.com/flex/spark"
+		xmlns:mx="library://ns.adobe.com/flex/mx" 
+		xmlns:view="edu.isi.bmkeg.digitalLibraryModule.view.*"
+		initialize="clearFile()"
+		width="100%">	
+	<s:layout>
+		<s:HorizontalLayout/>
+	</s:layout>
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+		
+	<fx:Style>
+		.inactive {
+			color: #CCCCCC;
+		}
+		.active {
+			color: #333333;
+		}		
+	</fx:Style>
+
+	<fx:Script>
+		<![CDATA[
+			import flash.events.*;
+			import flash.net.FileFilter;
+			import flash.net.FileReference;
+			
+			import mx.collections.ArrayCollection;
+				
+			[Bindable]
+			public var upLabel:String = "^";
+			
+			[Bindable]
+			public var upTooltip:String = "Upload directory";
+			
+			[Bindable]
+			public var upWidth:int = 30;
+						
+			[Bindable]
+			public var clearLabel:String = "x";
+			
+			[Bindable]
+			public var clearTooltip:String = "Clear file";
+			
+			[Bindable]
+			public var clearWidth:int = 30;
+
+			[Bindable]
+			public var nFilesToLoadMessage:String;
+
+			public var unloadedMessage:String = "-- No Directory Loaded --"; 
+
+			public var fileList:Array = [];
+			
+			private var fileRefList:FileReferenceList;
+
+			private var file:FileReference;
+
+			public var fileFilters:String = "";
+			
+			public function setFiltersFromCollection(filters:ArrayCollection=null):void {
+				if(filters != null ) {	
+					fileFilters = "";
+					for(var i:int=0; i<filters.length; i++) {
+						fileFilters += filters.getItemAt(i);						
+					}
+				}
+			}
+			
+			// ~~~~~~
+			// UPLOAD
+			// ~~~~~~
+			
+			private function openDialog():void
+			{
+				fileRefList = new FileReferenceList();
+				fileRefList.addEventListener(Event.SELECT, selectHandler);
+				
+				var f1:String = "";
+				var f2:String = "";
+				
+				var ff:Array = fileFilters.split(",");
+				
+				for each( var f:String in ff) {
+					if( f1.length > 0 ) {
+						f1 += ", ";
+						f2 += ";";
+					}
+					f1 += "*." + f; 
+					f2 += "*." + f; 
+				}
+			
+				var fileFilter:FileFilter = new FileFilter("Files: (" + f1 + ")", f2);
+				fileRefList.browse([fileFilter]);
+
+			}
+			
+			public function selectHandler(event:Event):void
+			{
+				fileRefList.removeEventListener(Event.SELECT, selectHandler);
+				
+				//file.addEventListener(Event.COMPLETE, loadCompleteHandler);
+				
+				if (fileRefList.fileList.length >= 1) {               
+					for (var k:Number = 0; k < fileRefList.fileList.length; k++){
+						fileList.push(
+							{name:fileRefList.fileList[k].name,
+								file:fileRefList.fileList[k]});
+					}
+				}				
+				this.fileNameBox.styleName = 'active';
+				this.clearButton.enabled = true;
+			
+			}
+
+			
+			public function startLoadingNextFile():void
+			{
+				
+				this.nFilesToLoadMessage = fileRefList.fileList.length + " files to load";
+				
+				// termination condition for the loop.
+				if( this.fileList.length == 0 ) {
+					this.dispatchEvent(new AllFileUploadsCompleteEvent(true, true));
+					return;
+				}
+				
+				var o:Object = this.fileList.shift();
+				file = o["file"];
+				
+				file.addEventListener(Event.COMPLETE, loadCompleteHandler);
+				file.load();
+								
+			}
+			
+			private function loadCompleteHandler(event:Event):void {
+				
+				file.removeEventListener(Event.COMPLETE, loadCompleteHandler);
+				var upEvent:Event = new UploadToBrowserCompleteEvent(file, true);
+				this.dispatchEvent(upEvent);
+				
+			}
+			
+			public function clearFile():void
+			{				
+				this.file = null;
+				this.nFilesToLoadMessage = unloadedMessage;
+				this.fileNameBox.styleName = "inactive";
+				this.clearButton.enabled = false;
+				this.dispatchEvent( new ClearUploadDirectoryEvent(true, false) );
+			}			
+			
+		]]>
+	</fx:Script>
+
+	<s:TextInput editable="false" id="fileNameBox" width="100%" 
+				 text="{nFilesToLoadMessage}"
+				 initialize="fileNameBox.styleName='inactive'"/>
+	
+	<s:Button id="upButton" label="{upLabel}" toolTip="{upTooltip}" width="{upWidth}" click="openDialog()"/>		
+	<s:Button id="clearButton" label="{clearLabel}" toolTip="{clearTooltip}" width="{clearWidth}" click="clearFile()"/>		
+	
+</s:Group>
+	

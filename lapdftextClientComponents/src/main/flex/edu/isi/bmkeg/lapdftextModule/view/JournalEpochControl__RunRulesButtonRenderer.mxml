@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:GridItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					xmlns:s="library://ns.adobe.com/flex/spark" 
+					xmlns:mx="library://ns.adobe.com/flex/mx"
+					width="100%" height="100%">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<s:layout>
+		<s:HorizontalLayout paddingLeft="2" paddingRight="2" 
+							paddingTop="2" paddingBottom="2"/>
+	</s:layout>
+	
+	<fx:Script>
+		<![CDATA[
+			import edu.isi.bmkeg.digitalLibrary.events.RunRuleSetOnJournalEpochEvent;
+			
+			import flash.display.Sprite;
+			
+			import mx.core.UIComponent;
+			import mx.graphics.*;
+			
+			import spark.events.DropDownEvent;
+			import spark.primitives.*;
+			
+			protected function runRulesControl_clickHandler(event:MouseEvent):void
+			{
+				this.dispatchEvent(
+					new RunRuleSetOnJournalEpochEvent(this.data.vpdmfId, true, false)
+				);
+				
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:Button id="runRulesControl"
+			  chromeColor="white"
+			  label="Run rules..."
+			  click="runRulesControl_clickHandler(event)"
+			  />	
+</s:GridItemRenderer>

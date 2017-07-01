@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>edu.isi.bmkeg</groupId>
+	<artifactId>sciKnowScholar</artifactId>
+	<version>1.0-SNAPSHOT</version>
+	<packaging>pom</packaging>
+	
+	<name>bioscholarProject</name>
+
+	<modules>
+		<module>bmkeg-parent</module>
+		<module>bmkeg-as-parent</module>
+		<module>uml</module>
+		<module>bmkeg-utils</module>
+		<module>vpdmfCore</module>
+		<module>vpdmfGenerator</module>
+		<module>vpdmf-digitalLibrary</module>
+		<module>digitalLibraryDao</module>
+        <module>digitalLibraryClientComponents</module>
+        <module>digitalLibraryClientApp</module>
+		<module>lapdftextVpdmf</module>
+        <module>lapdftextClientComponents</module>
+        <module>lapdftextClientApp</module>
+        <module>web_app</module>
+	</modules>
+
+</project>

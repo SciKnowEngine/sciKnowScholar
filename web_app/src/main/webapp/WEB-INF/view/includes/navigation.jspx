@@ -1,0 +1,18 @@
+<div id="navigation" xmlns:c="http://java.sun.com/jsp/jstl/core">
+
+	<c:url value="/index.jsp" var="index" />
+	<c:url value="/dash.jsp" var="dash" />
+	<c:url value="/digLib.jsp" var="diglib" />
+	<c:url value="/kefedDesigner.jsp" var="kefed" />
+	<c:url value="https://bmkeg.github.io/bioscholar" var="docs" />
+	<c:url value="https://github.com/BMKEG/bioscholarProject" var="github" />
+	<c:url value="http://www.bioscholar.org/" var="isi" />
+
+    <ul>
+        <li><a href="${diglib}"><strong>Digital</strong>Library</a></li>
+        <li><a href="${kefed}"><strong>KEfED</strong>Modeler</a></li>
+        <li><a href="${github}"><strong>Source</strong>code</a></li>
+    </ul>
+
+</div>
+                

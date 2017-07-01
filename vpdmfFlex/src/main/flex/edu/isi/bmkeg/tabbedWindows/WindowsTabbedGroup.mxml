@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<containers:SuperTabNavigator xmlns:mx="http://www.adobe.com/2006/mxml"
+				 xmlns:flexlib="http://code.google.com/p/flexlib/"
+				 width="450" height="444" 
+				 xmlns:containers="flexlib.containers.*"
+				 closePolicy="{SuperTab.CLOSE_ALWAYS}">
+	<mx:Script>
+		<![CDATA[
+			
+			import flexlib.controls.tabBarClasses.SuperTab;
+			
+			import mx.controls.Alert;
+			import mx.controls.Button;
+			import mx.core.Container;
+			import mx.core.DragSource;
+			import mx.core.IFlexDisplayObject;
+			import mx.events.DragEvent;
+			import mx.events.FlexEvent;
+			import mx.managers.DragManager;
+			
+			static private const MENU_ITEM_CLOSE:String = "Close Window";
+			static private const MENU_ITEM_SPLIT_VERTICAL:String = "Split window vertically";
+			static private const MENU_ITEM_SPLIT_HORIZONTAL:String = "Split window horizontally";
+			
+			internal var groupsMgr:WindowsTabbedGroupsMgr;
+			
+			/**
+			 * Opens a Tabbed Window.
+			 */
+			internal function openTabbedWindow(window:Container):void {
+				addTabbedWindow(window);
+			}
+			
+			internal function addTabbedWindow(window:Container):void {
+				addChild(window);				
+				var index:int = getChildIndex(window);
+				selectedIndex = index;	
+			}
+			
+			/**
+			 * Selects a tab
+			 */
+			internal function setFocusToWindow(window:Container):void {
+				selectedChild = window;								
+			}
+						
+			internal function removeTabbedWindow(window:Container):void {
+				removeChild(window);
+			}
+
+			/**
+			 * closePolicy is one of the SuperTabBar.{CLOSE_ALWAYS CLOSE_SELECTED CLOSE_ROLLOVER
+			 * CLOSE_NEVER}
+			 */
+			internal function setClosePolicyForWindow(window:Container, closePolicy:String):void {
+				var indx:int = getChildIndex(window);
+				setClosePolicyForTab(indx,closePolicy);
+			}
+			
+			internal function get numTabbedWindows():int {
+				return numChildren;				
+			}
+			
+			internal function getWindows():Array {
+				return getChildren();	
+			}
+			
+			override protected function childrenCreated():void {
+				super.childrenCreated();
+				addTabbarContextMenu();
+			}
+						
+			private function addTabbarContextMenu():void {
+				var closeItem:ContextMenuItem = new ContextMenuItem(MENU_ITEM_CLOSE);
+				var splitVerticallyItem:ContextMenuItem = new ContextMenuItem(MENU_ITEM_SPLIT_VERTICAL);
+				var splitHorizontallyItem:ContextMenuItem = new ContextMenuItem(MENU_ITEM_SPLIT_HORIZONTAL);
+				closeItem.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT,closeContextMenuItem_itemSelectHandler);
+				splitVerticallyItem.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT,splitVerticallyContextMenuItem_itemSelectHandler);
+				splitHorizontallyItem.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT,splitHorizontallyContextMenuItem_itemSelectHandler);
+				var cm:ContextMenu = tabBar.contextMenu;
+				if (cm == null) {
+					cm = new ContextMenu();
+					cm.hideBuiltInItems();
+					tabBar.contextMenu = cm;
+				}
+				if (cm.customItems == null) {
+					cm.customItems = new Array();					
+				}
+				cm.customItems.push(closeItem);				
+				cm.customItems.push(splitVerticallyItem);
+				cm.customItems.push(splitHorizontallyItem);
+				cm.addEventListener(ContextMenuEvent.MENU_SELECT,tabbarContextMenu_menuSlect);
+			}
+			
+			private function tabbarContextMenu_menuSlect(event:ContextMenuEvent):void {
+				var menu:ContextMenu = ContextMenu(event.target);
+				var items:Array = menu.customItems;
+				for each (var mi:ContextMenuItem in items) {
+				
+					// If there is only one tab then disable Split Windows menu items
+					if (mi.caption == MENU_ITEM_SPLIT_VERTICAL || mi.caption == MENU_ITEM_SPLIT_HORIZONTAL) 
+						mi.enabled = numTabbedWindows > 1;
+
+					// If closePolicy is NEVER disable close window menu item
+					if (mi.caption == MENU_ITEM_CLOSE) {
+						var tab:SuperTab = findTabButton(event.mouseTarget) as SuperTab;
+						if (tab) {
+							mi.enabled = tab.closePolicy != SuperTab.CLOSE_NEVER;
+						}
+						
+					}
+				
+				}
+			}
+						
+			private function closeContextMenuItem_itemSelectHandler(event:ContextMenuEvent):void {
+				var tab:Button = findTabButton(event.mouseTarget);
+				if (tab) {
+					var window:Container = getTabbedWindowFromTabControl(tab);
+					removeTabbedWindow(window);
+				}
+			}
+
+			private function getTabbedWindowFromTabControl(tab:Button):Container {
+				var index:int = tabBar.getChildIndex(tab);
+				if (index >= 0) 
+					return Container(getChildAt(index));
+				return null;
+				
+			}
+
+			private function splitVerticallyContextMenuItem_itemSelectHandler(event:ContextMenuEvent):void {
+				var tab:Button = findTabButton(event.mouseTarget);
+				if (tab) {
+					var window:Container = getTabbedWindowFromTabControl(tab);
+					if (window != null) dispatchEvent(new TabbedWindowEvent(TabbedWindowEvent.SPLIT_VERTICALLY_CLICK, window));
+				}
+			}
+
+			private function splitHorizontallyContextMenuItem_itemSelectHandler(event:ContextMenuEvent):void {
+				var tab:Button = findTabButton(event.mouseTarget);
+				if (tab) {
+					var window:Container = getTabbedWindowFromTabControl(tab);
+					if (window != null) dispatchEvent(new TabbedWindowEvent(TabbedWindowEvent.SPLIT_HORIZONTALLY_CLICK, window));
+				}
+			}
+
+			private function findTabButton(obj:DisplayObject):Button {
+				var p:DisplayObject = obj.parent;
+				if (p) {
+					if (p == tabBar) {
+						return obj as Button;
+					} else {
+						return findTabButton(p);
+					}
+				} else {
+					return null;
+				}
+			}
+				
+		]]>
+	</mx:Script>
+	<mx:Metadata>
+		[Event(name="splitVerticallyClick",type="edu.isi.bmkeg.neuart.atlasbrowser.events.TabbedWindowEvent")]
+		[Event(name="splitHorizontallyClick",type="edu.isi.bmkeg.neuart.atlasbrowser.events.TabbedWindowEvent")]
+	</mx:Metadata>
+</containers:SuperTabNavigator>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- containers\spark\myComponents\MyAlertPopUp.mxml -->
+<s:TitleWindow xmlns:fx="http://ns.adobe.com/mxml/2009" 
+						   xmlns:s="library://ns.adobe.com/flex/spark" 
+						   xmlns:view="edu.isi.bmkeg.digitalLibraryModule.view.*"
+						   xmlns:hc="com.hillelcoren.components.*"
+						   xmlns:mx="library://ns.adobe.com/flex/mx" 
+						   width="240" 
+						   height="170">
+	
+	<s:layout>
+		<s:VerticalLayout/>
+	</s:layout>
+
+	<fx:Script>
+		<![CDATA[
+
+			import edu.isi.bmkeg.ftd.model.FTDFragmentBlock;
+			import edu.isi.bmkeg.digitalLibrary.events.*;
+			
+			[Bindable]
+			public var frgCode:String = "-";
+			
+			[Bindable]
+			public var blkCode:String = "-";
+
+			[Bindable]
+			public var order:Number = 0;
+
+			public var block:FTDFragmentBlock;
+			
+			protected function ok_clickHandler(event:MouseEvent):void
+			{
+				
+				this.dispatchEvent( 
+					new ChangeFragmentCodeEvent(
+						ChangeFragmentCodeEvent.ADD_FRAGMENT_CODE,
+						block,
+						frgCodeCtl.text,
+						Number(newOrder.text)-1, 
+						true));
+				this.dispatchEvent(new ClosePopupEvent(this));
+			}
+			
+			protected function cancel_clickHandler(event:MouseEvent):void
+			{
+				this.dispatchEvent(new ClosePopupEvent(this));
+			}
+			
+		]]>
+	</fx:Script>
+	<s:Form id="myForm" width="100%" height="100%">
+		<s:layout>
+			<s:FormLayout gap="-14"/>
+		</s:layout>         
+		<s:FormItem label="Fragment" >
+			<s:HGroup verticalAlign="middle">
+				<s:TextInput id="frgCodeCtl" width="50" text="{frgCode}"/>
+				<s:TextInput id="newOrder" width="50" text="{order}"/>
+			</s:HGroup>
+		</s:FormItem>
+		<s:FormItem label="New Code">
+			<s:TextInput id="termCode" text="{blkCode}" editable="false"/>
+		</s:FormItem>
+	</s:Form> 
+	<s:HGroup width="100%" verticalAlign="middle">
+		<s:Button label="OK" click="ok_clickHandler(event)"/>
+		<s:Button label="Cancel" click="cancel_clickHandler(event)"/>
+	</s:HGroup>
+	
+</s:TitleWindow>

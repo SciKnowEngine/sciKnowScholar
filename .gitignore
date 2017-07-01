@@ -1,0 +1,11 @@
+.history
+target
+.classpath
+.project
+.settings/
+bin/target
+.DS_Store
+.idea
+bioscholar.iml
+
+

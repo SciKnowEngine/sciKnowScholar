@@ -1,0 +1,10 @@
+*.DS_Store
+.actionScriptProperties
+.flexLibProperties
+.history
+.settings
+/target
+bin/
+.DS_Store
+/target
+/target

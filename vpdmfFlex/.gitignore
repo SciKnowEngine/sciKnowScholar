@@ -1,0 +1,9 @@
+/target
+/.settings
+.history
+bin/*.swc
+/.project
+/.actionScriptProperties
+/.flexLibProperties
+.DS_Store
+/bin

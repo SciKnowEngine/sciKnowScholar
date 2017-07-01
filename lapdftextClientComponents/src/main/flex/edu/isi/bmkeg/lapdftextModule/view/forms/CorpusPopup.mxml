@@ -1,0 +1,123 @@
+<?xml version="1.0"?>
+<!-- containers\spark\myComponents\MyLoginForm.mxml -->
+<s:TitleWindow xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:mx="library://ns.adobe.com/flex/mx" 
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:hc="com.hillelcoren.components.*"
+			   xmlns:view="edu.isi.bmkeg.lapdftextModule.view.*"
+			   close="handleCloseEvent();">
+	<s:layout>
+		<s:VerticalLayout/>
+	</s:layout>
+	
+	<fx:Style>
+		.facebook {
+			over-skin: ClassReference("edu.isi.bmkeg.digitalLibraryModule.view.TermSkin");
+			up-skin: ClassReference("edu.isi.bmkeg.digitalLibraryModule.view.TermSkin");
+			down-skin: ClassReference("edu.isi.bmkeg.digitalLibraryModule.view.TermSkin");
+			selected-over-skin : ClassReference("edu.isi.bmkeg.digitalLibraryModule.view.TermSkin");
+			selected-up-skin: ClassReference("edu.isi.bmkeg.digitalLibraryModule.view.TermSkin");
+			selected-down-skin : ClassReference("edu.isi.bmkeg.digitalLibraryModule.view.TermSkin");
+			padding-top: 0;
+			padding-bottom: 0;
+			text-selected-color: #FFFFFF;
+			padding-left: 8;
+			padding-right: 8;
+			font-weight: normal;              
+		}
+	</fx:Style>
+	
+	<fx:Declarations>
+		<fx:Component id="dropDownTermRenderer">
+			<view:JournalItemRenderer selectedItems="{ outerDocument.autoComplete.selectedItems }" />
+		</fx:Component>
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import edu.isi.bmkeg.digitalLibrary.events.ClosePopupEvent;
+			import edu.isi.bmkeg.digitalLibrary.model.citations.*;
+			import edu.isi.bmkeg.digitalLibrary.rl.events.*;
+			import mx.collections.ArrayCollection;
+
+			public var vpdmfId:Number;
+			
+			[Bindable]
+			public var journals:ArrayCollection;
+
+			public var journalAbb:String;
+
+			// Handle the close button and Cancel button.
+			private function handleCloseEvent():void {
+				this.dispatchEvent(new ClosePopupEvent(this));
+			}            
+			
+			// Handle the OK button.
+			private function process():void {
+
+				var je:JournalEpoch = new JournalEpoch();
+				var j:Journal = new Journal();
+				je.vpdmfId = this.vpdmfId;
+/*				c.journal.abbr = journalAbb;
+				c.startVol = this.cStart.text;
+				c.endVol = this.cEnd.text;
+				
+				if( isNaN(vpdmfId) ) {
+					this.dispatchEvent( new InsertJournalEpochEvent(c) );
+				} else {
+					this.dispatchEvent( new UpdateJournalEpochEvent(c) );					
+				}*/
+				this.dispatchEvent(new ClosePopupEvent(this));
+			}
+			
+			private function handleAutoCompleteChange():void
+			{
+				var term:Object = autoComplete.selectedItem;
+				
+				if (term != null && term.hasOwnProperty( "abb" )) {
+					journalAbb = term["abb"];
+				} else { 
+					journalAbb = "";
+				}
+				
+			}
+		]]>
+	</fx:Script>
+	
+	<s:Form>
+		<s:FormItem label="Name">
+			<s:TextInput id="cName" width="100%"/>
+		</s:FormItem> 
+		<s:FormItem label="Description">
+			<s:TextArea id="desc" heightInLines="3" width="100%"/>
+		</s:FormItem> 
+		<s:FormItem label="Journal">
+			<hc:AutoComplete id="autoComplete" 
+							 dataProvider="{ journals }" 
+							 labelField="abb" 
+							 matchType="anyPart" 
+							 prompt="Start typing to select an annotation term" 
+							 width="100%" 
+							 change="{ handleAutoCompleteChange() }"
+							 allowNewValues="false"  
+							 selectedItemStyleName="{ AutoComplete.STYLE_FACEBOOK }" 
+							 allowDuplicates="false"
+							 allowMultipleSelection="false"
+							 allowEditingNewValues="false" 
+							 dropDownItemRenderer="{ dropDownTermRenderer }"
+							 backspaceAction="focus"/>
+		</s:FormItem> 
+		<s:FormItem label="Volume Start-End">
+			<s:HGroup>
+				<s:TextInput id="cStart" width="100%"/>				
+				<s:TextInput id="cEnd" width="100%"/>				
+			</s:HGroup>
+		</s:FormItem> 
+	</s:Form>
+	<s:HGroup> 
+		<s:Button label="OK"
+				  click="process();" /> 
+		<s:Button label="Cancel"
+				  click="handleCloseEvent();"/> 
+	</s:HGroup> 
+</s:TitleWindow>

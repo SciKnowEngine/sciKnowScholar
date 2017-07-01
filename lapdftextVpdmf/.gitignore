@@ -1,0 +1,10 @@
+.DS_Store
+bin
+target
+*.swf
+/.settings
+/.classpath
+/.project
+/general.xls
+/general.drl
+.history

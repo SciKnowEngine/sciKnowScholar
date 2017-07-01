@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:HDividedBox xmlns:mx="http://www.adobe.com/2006/mxml" width="672" height="546" 
+				verticalScrollPolicy="off" horizontalScrollPolicy="off">
+	<mx:Script>
+		<![CDATA[
+			
+			import mx.containers.DividedBox;
+			import mx.containers.VDividedBox;
+			import mx.controls.Alert;
+			import mx.core.Container;
+			import mx.core.UIComponent;
+			import mx.events.ChildExistenceChangedEvent;
+								
+			/**
+			 * Opens a Tabbed Window in the active WindowsTabbedGroup.
+			 */
+			public function openTabbedWindow(window:Container):void {
+				var currentGroup:WindowsTabbedGroup;
+				if (numChildren == 0)
+					currentGroup = createGroup();
+				else 
+					currentGroup = currentGroupComponent;
+				currentGroup.openTabbedWindow(window);				
+			}
+			
+			public function closeTabbedWindow(window:Container):void {
+				removeTabbedWindow(window);
+			}
+
+			/**
+			 * closePolicy is one of the SuperTabBar.{CLOSE_ALWAYS CLOSE_SELECTED CLOSE_ROLLOVER
+			 * CLOSE_NEVER}
+			 */
+			public function setClosePolicyForWindow(window:Container, closePolicy:String):void {
+				var group:WindowsTabbedGroup = WindowsTabbedGroup(window.parent);
+				group.setClosePolicyForWindow(window,closePolicy);								
+			}
+			
+			private function removeTabbedWindow(window:Container):void {
+				var group:WindowsTabbedGroup = WindowsTabbedGroup(window.parent);
+				group.removeTabbedWindow(window);				
+			}
+
+			private function createGroup():WindowsTabbedGroup {
+				var group:WindowsTabbedGroup = new WindowsTabbedGroup();
+				group.percentWidth =100;
+				group.percentHeight = 100;
+				group.groupsMgr = this;
+				addGroupEventListeners(group);
+				addChild(group);
+				return group;
+			}
+			
+			//TODO keep trtack of active group - Returning first group meanwhile
+			private function get currentGroupComponent():WindowsTabbedGroup {
+				
+				return findFirstGroup(this);
+			}
+			
+			private function findFirstGroup(partition:DividedBox):WindowsTabbedGroup {
+				for each (var child:Object in partition.getChildren()) {
+					if (child is WindowsTabbedGroup)
+						return WindowsTabbedGroup(child);
+					var childPartition:DividedBox = child as DividedBox;
+					if (!childPartition)
+						throw new IllegalOperationError("Expected a DividedBox child but got: " + child.toString());
+					var descendentGroup:WindowsTabbedGroup = findFirstGroup(childPartition);
+					if (descendentGroup)
+						return descendentGroup;
+				}
+				return null;
+			}
+			
+			public function getWindows():Array {
+				var windows:Array = [];
+				pushNestedWindows(this,windows);
+				return windows;
+			}
+
+			private function pushNestedWindows(partition:DividedBox, windows:Array):void {
+				for each (var child:Object in partition.getChildren()) {
+					if (child is WindowsTabbedGroup)
+						for each (var w:Container in WindowsTabbedGroup(child).getChildren()) {
+							windows.push(w);
+						}
+					else if (child is DividedBox)
+						pushNestedWindows(DividedBox(child), windows);
+					else 
+						throw new IllegalOperationError("Expected a DividedBox child but got: " + child.toString());
+				}
+			}
+			
+			public function setFocusToWindow(window:Container):void {
+				WindowsTabbedGroup(window.parent).setFocusToWindow(window);
+			}
+
+			private function splitPartitionVertically(group:WindowsTabbedGroup):WindowsTabbedGroup {
+
+				var parent:Container = group.parent as Container;
+				if (!parent)
+					throw new IllegalOperationError("Expected a container parent but was: " + group.parent);
+				var newGroup:WindowsTabbedGroup;
+				var savedAutoLayout:Boolean = group.autoLayout;
+				group.autoLayout = false;
+				var index:int = parent.getChildIndex(group);
+				var hDivider:HDividedBox = parent as HDividedBox ;
+				if (!hDivider) {
+					
+					// group parent is a VDividerBox.
+					// Move the group into a new HDividedBox that will be nested
+					// inside the current group's VDividedBox parent.
+
+					hDivider = new HDividedBox();
+					hDivider.percentHeight = group.percentHeight;
+					hDivider.percentWidth = 100;
+					hDivider.horizontalScrollPolicy = "off";
+					hDivider.verticalScrollPolicy = "off";
+					
+				
+					parent.addChildAt(hDivider,index);
+					hDivider.addChild(group);
+					group.percentHeight = 100;
+					index = 0;
+				} 
+				newGroup = new WindowsTabbedGroup();
+				var newWidth:Number = group.percentWidth/2;
+				newGroup.percentWidth = newWidth;
+				newGroup.percentHeight = 100;
+				group.percentWidth = newWidth;
+				newGroup.groupsMgr = this;
+				addGroupEventListeners(newGroup);
+				hDivider.addChildAt(newGroup,index + 1);
+				group.autoLayout = savedAutoLayout;
+				
+				return newGroup;
+			}
+
+			private function splitPartitionHorizontally(group:WindowsTabbedGroup):WindowsTabbedGroup {
+				
+				var parent:Container = group.parent as Container;
+				if (!parent)
+					throw new IllegalOperationError("Expected a container parent but was: " + group.parent);
+				var newGroup:WindowsTabbedGroup;
+				var savedAutoLayout:Boolean = group.autoLayout;
+				group.autoLayout = false;
+				var index:int = parent.getChildIndex(group);
+				var vDivider:VDividedBox = parent as VDividedBox ;
+				if (!vDivider) {
+					
+					// group parent is a HDividerBox.
+					// Move the group into a new VDividedBox that will be nested
+					// inside the current group's HDividedBox parent.
+					
+					vDivider = new VDividedBox();
+					vDivider.percentWidth = group.percentWidth;
+					vDivider.percentHeight = 100;
+					vDivider.horizontalScrollPolicy = "off";
+					vDivider.verticalScrollPolicy = "off";
+					parent.addChildAt(vDivider,index);
+					vDivider.addChild(group);
+					group.percentWidth = 100;
+					index = 0;
+				} 
+				newGroup = new WindowsTabbedGroup();
+				var newHeight:Number = group.percentHeight/2;
+				newGroup.percentHeight = newHeight;
+				newGroup.percentWidth = 100;
+				group.percentHeight = newHeight;
+				newGroup.groupsMgr = this;
+				addGroupEventListeners(newGroup);
+				vDivider.addChildAt(newGroup,index + 1);
+				group.autoLayout = savedAutoLayout;
+				
+				return newGroup;
+			}
+
+			private function addGroupEventListeners(group:WindowsTabbedGroup):void {
+				group.addEventListener(TabbedWindowEvent.SPLIT_VERTICALLY_CLICK, 
+					windowstabbedgroup1_splitGroupClickHandler);				
+				group.addEventListener(TabbedWindowEvent.SPLIT_HORIZONTALLY_CLICK, 
+					windowstabbedgroup1_splitGroupClickHandler);				
+				group.addEventListener(ChildExistenceChangedEvent.CHILD_REMOVE, 
+					windowstabbedgroup1_childRemoveHandler);
+			}
+
+			internal function moveTabbedWindowToGroup(window:Container, group:WindowsTabbedGroup):void {
+				removeTabbedWindow(window)
+				group.addTabbedWindow(window);
+			}
+
+			private function deletePartition(partition:UIComponent):void {
+
+				var parent:Container = Container(partition.parent);
+				
+				if (parent.numChildren > 1) {
+					
+					// There are sibling partitions to extend
+					// Search for the best partition to extend
+					
+					var adjacentPartition:UIComponent	// Partition to be extended.
+					var index:int = parent.getChildIndex(partition);
+					
+					var preSibling:UIComponent;
+					if (index > 0) preSibling = UIComponent(parent.getChildAt(index -1));
+					else preSibling = null;
+					
+					var postSibling:UIComponent;
+					if (index < parent.numChildren -1) postSibling = UIComponent(parent.getChildAt(index + 1));
+					else postSibling = null;
+					
+					var savedAutoLayout:Boolean = parent.autoLayout;
+					parent.autoLayout = false;
+
+					if (parent is HDividedBox) {
+						
+						// It will extend the adjacent sibling with the minimum width
+						
+						if (!preSibling)
+							adjacentPartition = postSibling;
+						else if (!postSibling)
+							adjacentPartition = preSibling;
+						else
+							adjacentPartition = (preSibling.width < postSibling.width) ? preSibling : postSibling;
+						
+						adjacentPartition.percentWidth += partition.percentWidth;
+						
+					} else if (parent is VDividedBox) {
+						
+						// It will extend the adjacent sibling with the minimum height
+						
+						if (!preSibling)
+							adjacentPartition = postSibling;
+						else if (!postSibling)
+							adjacentPartition = preSibling;
+						else
+							adjacentPartition = (preSibling.height < postSibling.height) ? preSibling : postSibling;
+						
+						adjacentPartition.percentHeight += partition.percentHeight;
+						
+					} else {
+						throw new IllegalOperationError("Expected a HDiidedBox or VDividedBox but got: " + parent.toolTip);
+					}
+
+					parent.removeChild(partition);
+					parent.autoLayout = savedAutoLayout;
+
+				} else {
+					
+					// There are no sibling partitions to extend - Extend a sibling of an ancestor
+					
+					if (parent is WindowsTabbedGroupsMgr) {
+						
+						// Parent is outermost partition - Nothing to extend
+						
+						parent.removeChild(partition);
+						
+					} else {
+						
+						deletePartition(parent);
+					}
+
+				}
+					
+			}
+			
+			private function windowstabbedgroup1_childRemoveHandler(event:ChildExistenceChangedEvent):void {
+				var window:Container = event.relatedObject as Container;
+				if (window) {
+					var group:WindowsTabbedGroup = WindowsTabbedGroup(window.parent);
+					// This event is dispatched before a child is removed from a container.
+					// Hence, if (group.numTabbedWindows == 1) means that the last child is 
+					// about to be removed from its parent container.
+					if (group.numTabbedWindows == 1) {
+						deletePartition(group);
+					}		
+				}
+			}
+
+			private function windowstabbedgroup1_splitGroupClickHandler(event:TabbedWindowEvent):void
+			{
+				var window:Container = event.tabbedWindow;
+				var oldGroup:WindowsTabbedGroup = WindowsTabbedGroup(window.parent);
+				var newGroup:WindowsTabbedGroup;
+				if (event.type == TabbedWindowEvent.SPLIT_VERTICALLY_CLICK)
+					newGroup = splitPartitionVertically(oldGroup);
+				else if (event.type == TabbedWindowEvent.SPLIT_HORIZONTALLY_CLICK)
+					newGroup = splitPartitionHorizontally(oldGroup);
+				else
+					throw new IllegalOperationError("Unexpected Event type: " + event.type);
+				moveTabbedWindowToGroup(window,newGroup);
+			}
+
+
+		]]>
+	</mx:Script>
+</mx:HDividedBox>

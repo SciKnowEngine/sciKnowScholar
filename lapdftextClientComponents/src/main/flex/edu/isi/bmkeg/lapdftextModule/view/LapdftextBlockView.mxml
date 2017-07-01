@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 xmlns:view="edu.isi.bmkeg.digitalLibraryModule.view.*"
+		 xmlns:hc="com.hillelcoren.components.*"
+		 xmlns:classes="com.hillelcoren.components.autoComplete.classes.*"
+		 width="100%"
+		 height="100%"
+		 dragEnter="dragEnterHandler(event);" 
+		 dragDrop="dragDropHandler(event);">	
+	
+	<s:layout>
+		<s:VerticalLayout/>
+	</s:layout>
+	
+	<s:states>
+		<s:State name="showPages"/>	
+		<s:State name="showText"/>	
+	</s:states>
+
+	<fx:Declarations>
+		<s:RadioButtonGroup id="documentView" 
+							itemClick="buttonsChangeHandler(event);" 
+							selectedValue="Page Images"/>
+	</fx:Declarations>
+
+	<fx:Script>
+		<![CDATA[
+			import edu.isi.bmkeg.digitalLibrary.events.*;
+			import edu.isi.bmkeg.digitalLibraryModule.events.*;
+			import edu.isi.bmkeg.ftd.model.*;
+			import edu.isi.bmkeg.lapdftextModule.events.*;
+			
+			import mx.core.DragSource;
+			import mx.events.DragEvent;
+			import mx.managers.DragManager;
+			
+			import mx.collections.*;
+			import mx.events.ItemClickEvent;
+
+			[Bindable]
+			public var csv:String;
+			
+			[Bindable]
+			public var lapdfText:String;
+			
+			[Bindable]
+			public var bitmaps:ArrayCollection = new ArrayCollection;
+			
+			[Bindable]
+			public var terms:ArrayCollection;
+			
+			[Bindable] 
+			public var frgType:String;
+
+			[Bindable] 
+			public var ruleSet:FTDRuleSet;
+			
+			public var colorLookup:Object = new Object;
+			
+			private static var swfClass:Class;
+			
+			protected function buttonsChangeHandler(event:ItemClickEvent):void {
+				var v:String = String(documentView.selectedValue);
+				this.dispatchEvent( 
+					new ChangeLapdftexBlockViewEvent(v)
+				);
+				
+				if( v == "Page Images" || v == "Block Classification" ||  v == "Block Font + Style" ) {
+					currentState = "showPages";
+				} else {
+					currentState = "showText";					
+					this.dispatchEvent( 
+						new RetrievePmcHtmlEvent()
+					);
+				}
+				
+			}
+				
+			protected function rerunClassification(event:MouseEvent):void {
+				var v:String = String(documentView.selectedValue);
+				if( ruleSet != null ) {
+					this.dispatchEvent( 
+						new RunRuleSetOnArticleCitationEvent(ruleSet.vpdmfId, -1)
+					);					
+				}
+			}
+			
+			protected function generateRuleFileFromLapdf(event:MouseEvent):void {
+				if( this.csv != null ) {
+					var saveFile:FileReference = new FileReference();
+					saveFile.addEventListener(Event.OPEN, saveBeginHandler);
+					saveFile.addEventListener(Event.COMPLETE, saveCompleteHandler);
+					saveFile.addEventListener(IOErrorEvent.IO_ERROR, saveIOErrorHandler);
+					saveFile.save(this.csv);
+				}
+			}
+			
+			private function saveBeginHandler(event:Event):void
+			{
+				/* IT'D BE NICE TO HAVE A PROGRESS BAR HERE*/
+			}
+			
+			private function saveCompleteHandler(event:Event):void
+			{
+				event.target.removeEventListener(Event.OPEN, saveBeginHandler);
+				event.target.removeEventListener(Event.COMPLETE, saveCompleteHandler);
+				event.target.removeEventListener(IOErrorEvent.IO_ERROR, saveIOErrorHandler);
+			}
+			
+			private function saveIOErrorHandler(event:IOErrorEvent):void
+			{
+				event.target.removeEventListener(Event.COMPLETE, saveCompleteHandler);
+				event.target.removeEventListener(IOErrorEvent.IO_ERROR, saveIOErrorHandler);
+				
+				trace("Error while trying to save:");
+				trace(event);
+			}		
+			// Subsection of commands to save new rule file.
+			//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+			
+			// The dragEnter event handler for the Canvas container
+			// enables dropping.
+			private function dragEnterHandler(event:DragEvent):void {
+				DragManager.acceptDragDrop(LapdftextBlockView(event.currentTarget));
+			}
+			
+			//
+			// drop a rule file here to run it. 
+			//
+			private function dragDropHandler(event:DragEvent):void {
+				
+				var data:Vector.<Object> = 
+					event.dragSource.dataForFormat("itemsByIndex") as Vector.<Object>;
+				
+				var ruleFileId:Number = data[0].vpdmfId;
+					
+				this.dispatchEvent(
+					new RunRuleSetOnArticleCitationEvent( ruleFileId, -1)
+				);
+					
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:HGroup width="100%">
+		<s:RadioButton label="Page Images" 
+					   id="pgImgButton" 
+					   group="{documentView}"/>
+		<s:RadioButton label="Block Classification" 
+					   id="blockClassButton" 
+					   group="{documentView}"/>
+		<s:RadioButton label="Block Font + Style" 
+					   id="blockFontButton" 
+					   group="{documentView}"/>
+		<s:RadioButton label="Text" 
+					   id="textButton" 
+					   group="{documentView}"/>	
+	</s:HGroup>
+	
+	<s:List includeIn="showPages" id="pgList"			
+			width="100%"
+			height="100%"
+			itemRenderer="edu.isi.bmkeg.lapdftextModule.view.LapdftextBlockPageRenderer"
+			dataProvider="{bitmaps}">
+		<s:layout>
+			<s:VerticalLayout gap="0" 
+							  horizontalAlign="left" 
+							  verticalAlign="top"/>
+		</s:layout>
+	</s:List>	
+	
+	<s:TextArea includeIn="showText" 
+				id="lapdfTextControl" 
+				text="{lapdfText}"
+				editable="false"
+				height="100%" 
+				width="100%"/>
+	
+</s:Group>
+

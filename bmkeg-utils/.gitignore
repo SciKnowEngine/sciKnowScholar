@@ -1,0 +1,7 @@
+/target
+.settings
+.history
+.classpath
+.project
+/apache-maven-*
+/bin

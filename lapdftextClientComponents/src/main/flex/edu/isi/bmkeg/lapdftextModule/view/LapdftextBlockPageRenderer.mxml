@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- http://blog.flexexamples.com/2009/09/29/displaying-images-in-a-spark-list-control-using-a-custom-item-renderer-in-flex-4/ -->
+<s:ItemRenderer name="FTDPageImageRenderer"
+				xmlns:fx="http://ns.adobe.com/mxml/2009"
+				xmlns:s="library://ns.adobe.com/flex/spark"
+				focusEnabled="false" 
+				creationComplete="init()" 
+				resize="itemrenderer1_resizeHandler(event)"
+				dataChange="itemrenderer1_dataChangeHandler(event)">
+	
+	<s:states>
+		<s:State name="normal" />
+	</s:states>
+	
+	<fx:Style>
+		.myFontStyle { 
+			fontSize: 15;
+			color: #9933FF;
+		}
+	</fx:Style>
+	
+	<fx:Script>
+		<![CDATA[
+			import edu.isi.bmkeg.digitalLibrary.events.*;
+			import edu.isi.bmkeg.ftd.model.*;
+			import edu.isi.bmkeg.lapdftextModule.model.LapdftextBlockHolder;
+			import edu.isi.bmkeg.utils.ColorPalette;
+			
+			import flare.display.TextSprite;
+			
+			import flash.display.*;
+			import flash.display.Sprite;
+			
+			import mx.collections.*;
+			import mx.controls.List;
+			import mx.core.UIComponent;
+			import mx.events.FlexEvent;
+			import mx.events.ResizeEvent;
+			import mx.graphics.*;
+			
+			import spark.primitives.*;
+			
+			[Bindable]
+			private var imgHeight:int = 480;
+
+			[Bindable]
+			private var imgWidth:int = 790;
+			
+			private var ratio:Number = 1.0;
+
+			private var container:UIComponent = new UIComponent();
+			private var inProgress:Path;
+			private var extraRectangles:ArrayCollection = new ArrayCollection();
+			private var addedAnnotations:ArrayCollection = new ArrayCollection();
+
+			private var dismissControl:Sprite;
+			
+			private function init():void {
+				this.addElement( container );	
+				this.autoDrawBackground = false;
+			}
+			
+			protected function itemrenderer1_resizeHandler(event:ResizeEvent):void
+			{
+				this.imgWidth = owner.width;
+				this.imgHeight = owner.width * ratio;
+			}
+
+			/** 
+			 * Here's where we do the actual drawing of the extra rectangles and sprites.
+			 */  
+			protected function itemrenderer1_dataChangeHandler(event:FlexEvent):void
+			{
+				if( data == null || data.image == null )
+					return;
+				
+				var bitmap:Bitmap = Bitmap(data.image);
+				this.imgWidth = this.owner.width;
+				this.ratio = bitmap.height / bitmap.width;
+				this.imgHeight = this.imgWidth * ratio;
+					
+				var sf:Number = this.imgHeight / data.image.height;
+				
+				//
+				// First, clear all the stuff that's already there.
+				//
+				if( this.inProgress != null ) {
+					removeElement(this.inProgress);
+					this.inProgress = null;
+				}
+
+				for each(var r:Path in this.extraRectangles) {		
+					removeElement(r);
+				}
+				this.extraRectangles = new ArrayCollection();
+				
+				if( this.addedAnnotations!= null && this.addedAnnotations.length > 0) {
+					for each(var s:Sprite in this.addedAnnotations) {
+						this.container.removeChild(s);						
+					}
+					this.addedAnnotations = new ArrayCollection();
+				}
+				
+				if( data == null )
+					return;
+				
+				//
+				// This is the fill color of the new fragments currently being added.
+				//
+				var fillColor:uint = 0xffff00;
+				var frgPageList:spark.components.List = spark.components.List(this.owner);
+				var lapdftextBlockView:LapdftextBlockView = LapdftextBlockView(frgPageList.owner);
+				if( lapdftextBlockView.frgType != null && lapdftextBlockView.frgType.length > 0 ) {
+					fillColor = lapdftextBlockView.colorLookup[lapdftextBlockView.frgType];
+				} 
+				var fill:SolidColor = new SolidColor(fillColor, 0.2);
+				
+				//
+				// Then get the data for this page (since this is being reused to 
+				// process each page sequentially).
+				//
+				var fh:LapdftextBlockHolder = LapdftextBlockHolder(data);
+				
+				//
+				// Actively regenerate a sprite for each fragment block 
+				// from the new data in the system.
+				//
+				var srt:Sort = new Sort();
+				srt.fields = [new SortField("vpdmfId")];
+					
+				//
+				// Add a path for extra stuff we want to show, like the blocking on the pdf
+				// 
+				if( fh.extraRectangles.length > 0 ) {
+					
+					var st:SolidColorStroke = new SolidColorStroke();
+					st.color = 0xff0000;	
+					frgPageList = spark.components.List(this.owner);
+					lapdftextBlockView = LapdftextBlockView(frgPageList.owner);
+					st.alpha = 1.0;
+					
+					var sf2:Number = this.imgWidth / bitmap.width * 2.0;
+					
+					for each(var o:Object in fh.extraRectangles) {	
+						
+						var pathData:String = "m " + (o.x1*sf2) + " " + (o.y1*sf2) + " " +
+							"v " + (o.y2 - o.y1)*sf2 + " " +
+							"h " + (o.x2 - o.x1)*sf2 + " " +
+							"v " + (o.y1 - o.y2)*sf2 + " " +
+							"z";
+						var p:Path = new Path();
+						p.data = pathData;
+						p.stroke = st;
+						addElement( p );
+						this.extraRectangles.addItem(p);
+						
+						//
+						// If the page image is not visible then write 
+						// annotations on top of each block.
+						//
+						if( fh.state == 1 ) {
+
+							var ts:TextSprite = new TextSprite(String(o.c));
+							ts.x = o.x1 * sf2;
+							ts.y = o.y1 * sf2;
+							ts.color = 0xff0000;
+							ts.font = "Arial";
+							this.container.addChild(ts);
+							this.addedAnnotations.addItem(ts);
+
+						} else if( fh.state == 2 ) {
+						
+							var ts2:TextSprite = new TextSprite(String(o.f + ":" + o.sz));
+							ts2.x = o.x1 * sf2;
+							ts2.y = o.y1 * sf2;
+							ts2.color = 0xff0000;
+							ts2.font = "Arial";
+							this.container.addChild(ts2);
+							this.addedAnnotations.addItem(ts2);
+						
+						}
+
+
+					}
+				
+				}
+					
+			}
+					
+		]]>
+	</fx:Script>
+	
+	<s:Image id="img"
+			 scaleMode="{BitmapScaleMode.LETTERBOX}" 
+			 width="{imgWidth}"   
+			 height="{imgHeight}"
+			 horizontalAlign="left"
+		  	 verticalAlign="top"
+			 smooth="true"
+		     smoothingQuality="high"
+			 source="{data.image}"
+			 alpha="{data.alpha}"/>
+	
+</s:ItemRenderer>
